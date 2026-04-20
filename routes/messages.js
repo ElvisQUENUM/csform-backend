@@ -5,15 +5,21 @@ const upload = require('../middleware/upload');
 const { verifierToken } = require('../middleware/auth');
 const { envoyerConfirmationClient, envoyerEmailCloture, notifierAdmin } = require('../config/email');
 
-const genRef = async () => {
+const genRef = async (type_message) => {
     const annee = new Date().getFullYear();
+    const prefixes = {
+        reclamation: 'RE',
+        suggestion: 'SU',
+        satisfaction: 'SAS'
+    };
+    const prefix = prefixes[type_message] || 'GEN';
     const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
         await conn.execute('INSERT INTO compteur_references (annee,compteur) VALUES (?,1) ON DUPLICATE KEY UPDATE compteur=compteur+1', [annee]);
         const [r] = await conn.execute('SELECT compteur FROM compteur_references WHERE annee=?', [annee]);
         await conn.commit();
-        return `CSF-${annee}-${String(r[0].compteur).padStart(4, '0')}`;
+        return `CSF-${prefix}${annee}-${String(r[0].compteur).padStart(4, '0')}`;
     } catch (e) { await conn.rollback(); throw e; }
     finally { conn.release(); }
 };
